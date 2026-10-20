@@ -6,6 +6,8 @@ Pairs the screen, sends a heartbeat every 30 s, runs remote commands
 hangs and updates itself when the server has a newer version.
 
 Only needs Python 3.11+, requests and websocket-client.
+
+SPDX-License-Identifier: AGPL-3.0-only
 """
 from __future__ import annotations
 

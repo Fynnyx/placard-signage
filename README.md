@@ -68,4 +68,4 @@ Screens only make outgoing HTTPS requests, so they work behind any router withou
 
 ## License
 
-See [LICENSE](LICENSE).
+[GNU Affero General Public License v3.0](LICENSE). You may use, change and host Placard Signage freely. If you run a modified version for others over a network, you must offer them the source of your changes.
