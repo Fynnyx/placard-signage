@@ -59,18 +59,19 @@ export async function checkFraming(url: string) {
   catch (err) {
     return { ok: false, reachable: false, status: null, warnings: [`Could not load the page: ${(err as Error).message}`] }
   }
+  const publicOrigin = new URL(useConfig().publicUrl).origin
+  const sameOrigin = new URL(res.url || target).origin === publicOrigin
   const xfo = res.headers.get('x-frame-options')?.toLowerCase()
-  if (xfo && (xfo.includes('deny') || xfo.includes('sameorigin'))) {
+  if (xfo && (xfo.includes('deny') || (xfo.includes('sameorigin') && !sameOrigin))) {
     warnings.push(`The page sends "X-Frame-Options: ${xfo}" and cannot be shown in the player.`)
   }
   const csp = res.headers.get('content-security-policy') || ''
   const fa = /frame-ancestors([^;]*)/i.exec(csp)?.[1]?.trim()
   if (fa !== undefined) {
-    const publicOrigin = new URL(useConfig().publicUrl).origin
     const sources = fa.split(/\s+/).filter(Boolean)
     const allowed = sources.some(s => s === '*' || s === publicOrigin || s === publicOrigin + '/'
       || (s.startsWith('https://*.') && new URL(publicOrigin).host.endsWith(s.slice(9)))
-      || (s === "'self'" && new URL(res.url).origin === publicOrigin))
+      || (s === "'self'" && sameOrigin))
     if (!allowed) warnings.push(`The page's Content-Security-Policy "frame-ancestors ${fa}" does not allow ${publicOrigin}.`)
   }
   if (!res.ok) warnings.push(`The page answered with HTTP ${res.status}.`)

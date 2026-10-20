@@ -27,6 +27,21 @@ export function takeTokenFromHash() {
   history.replaceState(null, '', location.pathname + location.search)
 }
 
+/** Full browser version; Chromium only exposes it through User-Agent Client Hints. */
+export async function browserVersionFull() {
+  const uad = (navigator as any).userAgentData
+  if (uad?.getHighEntropyValues) {
+    try {
+      const { fullVersionList } = await uad.getHighEntropyValues(['fullVersionList'])
+      const brand = (fullVersionList as { brand: string, version: string }[] | undefined)
+        ?.find(b => /Chromium|Google Chrome|Microsoft Edge/.test(b.brand))
+      if (brand) return `${brand.brand.replace('Google ', '')} ${brand.version}`
+    }
+    catch { /* fall back to the user agent */ }
+  }
+  return browserVersion()
+}
+
 export function browserVersion() {
   const ua = navigator.userAgent
   const m = /(Chromium|Chrome|Firefox|Edg)\/([\d.]+)/.exec(ua) || /Version\/([\d.]+).*Safari/.exec(ua)

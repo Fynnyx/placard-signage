@@ -1,4 +1,6 @@
+import { execFileSync } from 'node:child_process'
 import { createHmac } from 'node:crypto'
+import { resolve } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client, device, startServer } from './server'
 
@@ -238,6 +240,18 @@ describe('phase 4: groups, schedule, placeholders', () => {
     const exp = u.searchParams.get('sx_exp')
     expect(u.searchParams.get('sx_screen')).toBe(String(s.id))
     expect(u.searchParams.get('sx_sig')).toBe(createHmac('sha256', 'integration-secret').update(`/menu\n${s.id}\n${exp}`).digest('hex'))
+  })
+
+  it('verifies with the Python and Node snippets from docs/', async () => {
+    const s = await pairScreen('Snippets')
+    const p = (await admin.post('/api/playlists', { name: 'Snippets', items: [{ type: 'url', source: 'https://intranet.example.org/a/b?x=1', signUrl: true }] })).body
+    await admin.post('/api/assignments', { screenId: s.id, playlistId: p.id })
+    const url = (await device(server.base, s.token).playlist().then(r => r.json())).items[0].src
+    const examples = resolve(__dirname, '../../../docs/examples')
+    expect(execFileSync('python3', [`${examples}/verify_signed_url.py`, url, 'integration-secret']).toString()).toContain(`valid for screen ${s.id}`)
+    expect(execFileSync(process.execPath, [`${examples}/verify-signed-url.mjs`, url, 'integration-secret']).toString()).toContain(`valid for screen ${s.id}`)
+    expect(() => execFileSync('python3', [`${examples}/verify_signed_url.py`, url, 'wrong-secret'], { stdio: 'pipe' })).toThrow()
+    expect(() => execFileSync(process.execPath, [`${examples}/verify-signed-url.mjs`, url.replace('/a/b', '/a/c'), 'integration-secret'], { stdio: 'pipe' })).toThrow()
   })
 })
 

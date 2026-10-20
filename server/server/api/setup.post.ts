@@ -8,7 +8,7 @@ const Body = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  if (isSetupDone()) throw createError({ statusCode: 409, statusMessage: 'Setup is already done' })
+  if (!setupRequired()) throw createError({ statusCode: 409, statusMessage: 'Setup is already done' })
   enforceRateLimit(event, 'setup', 10, 15 * 60_000)
   const body = await parseBody(event, Body)
   const passwordHash = await hashPassword(validatePassword(body.password))

@@ -29,6 +29,7 @@ export default {
   'common.refresh': 'Aktualisieren',
   'common.loadMore': 'Mehr laden',
   'common.never': 'nie',
+  'common.justNow': 'gerade eben',
   'common.yes': 'Ja',
 
   'field.name': 'Name',

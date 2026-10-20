@@ -79,6 +79,7 @@ export function fillPlaceholders(url: string, screen: { id: number, name: string
 export interface ResolvedItem {
   id: number
   type: ItemType
+  title: string
   src: string
   duration: number
   reloadEachTime: boolean
@@ -134,7 +135,7 @@ export function resolvePlaylistForScreen(screen: { id: number, name: string, gro
         catch { /* invalid URL: leave unsigned */ }
       }
     }
-    items.push({ id: r.id, type: r.type, src, duration: r.durationS, reloadEachTime: r.reloadEachTime })
+    items.push({ id: r.id, type: r.type, title: r.title, src, duration: r.durationS, reloadEachTime: r.reloadEachTime })
   }
   return { playlistId: playlist.id, name: playlist.name, source, assignmentId: picked?.id ?? null, items }
 }

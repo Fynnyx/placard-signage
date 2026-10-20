@@ -7,7 +7,7 @@ export default defineEventHandler((event) => {
   return {
     user: auth?.kind === 'session' ? auth.user : null,
     csrfToken: auth?.csrfToken ?? null,
-    setupRequired: !isSetupDone(),
+    setupRequired: setupRequired(),
     localLogin: cfg.localLogin || !cfg.oidc,
     oidc: cfg.oidc ? { name: cfg.oidc.name } : null,
     mail: mailEnabled(),

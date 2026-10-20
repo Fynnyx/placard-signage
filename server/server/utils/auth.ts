@@ -103,6 +103,12 @@ export function requireRole(event: H3Event, min: Role): AuthContext {
   return auth
 }
 
+/** The setup wizard is needed while no user exists and local accounts are enabled. */
+export function setupRequired() {
+  const cfg = useConfig()
+  return !isSetupDone() && (cfg.localLogin || !cfg.oidc)
+}
+
 export function isSetupDone() {
   if (getSettings().setupDone) return true
   const anyUser = useDb().select({ id: schema.users.id }).from(schema.users).limit(1).get()

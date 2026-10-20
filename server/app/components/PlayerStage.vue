@@ -10,6 +10,7 @@
 export interface StageItem {
   id: number
   type: 'url' | 'image' | 'video'
+  title?: string
   src: string
   duration: number
   reloadEachTime: boolean

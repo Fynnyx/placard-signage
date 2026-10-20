@@ -73,6 +73,7 @@ async function poll() {
 
 function describe(item: StageItem | null) {
   if (!item) return ''
+  if (item.title) return item.title
   const src = item.src.replace(/[?&]sx_(screen|exp|sig)=[^&]*/g, '')
   return `${item.type}: ${src}`
 }
@@ -85,7 +86,7 @@ async function heartbeat() {
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
         source: 'player',
-        browserVersion: browserVersion(),
+        browserVersion: await browserVersionFull(),
         resolution: `${window.screen.width}x${window.screen.height}`,
         currentItem: describe(currentItem.value),
       }),
@@ -131,6 +132,16 @@ function registerServiceWorker() {
     .catch(err => reportError(`Service worker: ${err.message}`))
 }
 
+let reportedFirstItem = false
+function onCurrent(item: StageItem | null) {
+  currentItem.value = item
+  // Report what is showing right away the first time, then with the regular heartbeat.
+  if (item && !reportedFirstItem) {
+    reportedFirstItem = true
+    void heartbeat()
+  }
+}
+
 function onTick(seconds: number) {
   lastTick = Date.now()
   expected = seconds
@@ -149,7 +160,15 @@ onMounted(() => {
     if ('serviceWorker' in navigator) registerServiceWorker()
   })
   void heartbeat()
-  timers.push(setInterval(poll, 60_000))
+  // Every 60 s; every 15 s while there is nothing to show, so new content appears quickly.
+  let sincePoll = 0
+  timers.push(setInterval(() => {
+    sincePoll += 15
+    if (sincePoll >= 60 || !items.value.length) {
+      sincePoll = 0
+      void poll()
+    }
+  }, 15_000))
   timers.push(setInterval(heartbeat, 30_000))
   // Watchdog: reload when the rotation has not advanced for 3× the current item's duration.
   timers.push(setInterval(() => {
@@ -171,7 +190,7 @@ onBeforeUnmount(() => timers.forEach(clearInterval))
       <a href="/player/pair">{{ t('player.pairNow') }}</a>
     </div>
     <template v-else>
-      <PlayerStage :items="items" @current="currentItem = $event" @tick="onTick" @error="reportError" />
+      <PlayerStage :items="items" @current="onCurrent" @tick="onTick" @error="reportError" />
       <div v-if="!items.length && lastPoll" class="notice dim">
         <p>{{ t('player.nothing') }}</p>
       </div>
