@@ -22,7 +22,7 @@ Run the container and proxy HTTPS to port 3000:
 docker run -d --name placard --restart unless-stopped \
   -e PUBLIC_URL=https://signage.example.org \
   -v placard-data:/data -p 127.0.0.1:3000:3000 \
-  ghcr.io/fynnyx/placard-signage:1
+  ghcr.io/fynnyx/placard-signage:0
 ```
 
 - `PUBLIC_URL` must be the address browsers and screens use.
@@ -35,7 +35,7 @@ docker run -d --name placard --restart unless-stopped \
 docker compose pull && docker compose up -d
 ```
 
-Database migrations run automatically at startup. Image tags: `1` (latest 1.x), `1.2` (latest 1.2.x), `1.2.3` (exact), `latest`.
+Database migrations run automatically at startup. Image tags: the major version (e.g. `0`, later `1`) follows the newest release of that line, `0.1` the newest 0.1.x, `0.1.0` is exact, and `latest` is the newest release.
 
 The Raspberry Pi agent updates itself: when the server ships a newer agent, every screen downloads it with its next heartbeat. Chromium and the OS are updated by `unattended-upgrades` on each Pi.
 
