@@ -1,0 +1,19 @@
+[Unit]
+Description=Placard Signage agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kiosk
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/placard/placard_agent.py
+Restart=always
+RestartSec=5
+# /run/placard/start-url tells the kiosk script which page to open.
+RuntimeDirectory=placard
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+
+[Install]
+WantedBy=multi-user.target

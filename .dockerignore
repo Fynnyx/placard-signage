@@ -1,0 +1,7 @@
+**/node_modules
+server/.nuxt
+server/.output
+server/.data
+.git
+docs
+deploy
