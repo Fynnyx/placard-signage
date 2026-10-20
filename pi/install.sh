@@ -114,7 +114,9 @@ if [ -f "$BOOT_DIR/cmdline.txt" ] && ! grep -q 'consoleblank=0' "$BOOT_DIR/cmdli
   say "Disabling console blanking"
   sed -i '1 s/$/ consoleblank=0/' "$BOOT_DIR/cmdline.txt"
 fi
-command -v raspi-config >/dev/null && raspi-config nonint do_blanking 1 >/dev/null 2>&1 || true
+if command -v raspi-config >/dev/null; then
+  raspi-config nonint do_blanking 1 >/dev/null 2>&1 || true
+fi
 
 # ---------------------------------------------------------------- configuration
 say "Writing $CONF_DIR"
