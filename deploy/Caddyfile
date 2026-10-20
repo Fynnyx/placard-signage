@@ -1,0 +1,12 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	# Uploads of large videos
+	request_body {
+		max_size 2GB
+	}
+	reverse_proxy placard:3000
+}

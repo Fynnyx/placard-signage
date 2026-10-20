@@ -63,8 +63,9 @@ curl -fsS --max-time 20 "$SERVER_URL/api/health" >/dev/null || die "cannot reach
 say "Installing packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
+# Raspberry Pi OS Bookworm ships its optimised build as chromium-browser; Trixie and Debian call it chromium.
 CHROMIUM_PKG=chromium
-apt-cache show chromium >/dev/null 2>&1 || CHROMIUM_PKG=chromium-browser
+apt-cache show chromium-browser >/dev/null 2>&1 && CHROMIUM_PKG=chromium-browser
 apt-get install -y -q --no-install-recommends \
   labwc wlr-randr "$CHROMIUM_PKG" cec-utils v4l-utils \
   python3 python3-requests python3-websocket \

@@ -1,0 +1,48 @@
+# Placard Signage with Caddy for HTTPS.
+#
+#   cp .env.example .env    # set DOMAIN and ACME_EMAIL
+#   docker compose up -d
+#
+# Then open https://$DOMAIN and create the first admin.
+services:
+  placard:
+    image: ghcr.io/OWNER/placard-signage:1
+    restart: unless-stopped
+    environment:
+      PUBLIC_URL: https://${DOMAIN}
+      TZ: ${TZ:-Europe/Berlin}
+      # Optional, see docs/configuration.md:
+      # ADMIN_EMAIL: admin@example.org
+      # ADMIN_PASSWORD: change-me-please
+      # URL_SIGNING_SECRET: ${URL_SIGNING_SECRET}
+      # SMTP_URL: smtps://user:password@mail.example.org:465
+      # SMTP_FROM: Signage <signage@example.org>
+      # OIDC_ISSUER: https://auth.example.org/realms/main
+      # OIDC_CLIENT_ID: placard
+      # OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+    volumes:
+      - placard-data:/data
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - placard
+
+volumes:
+  placard-data:
+  caddy-data:
+  caddy-config:
