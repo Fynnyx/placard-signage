@@ -49,7 +49,13 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           awk -v v="$version" '$0 ~ "^## \\[?"v"\\]?" {on=1; next} /^## / && on {exit} on' CHANGELOG.md > notes.md
           [ -s notes.md ] || echo "Placard Signage $version" > notes.md
-      - name: Create release
+      - name: Create release or add the files to an existing one
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md pi/install.sh pi/agent/placard_agent.py
+        run: |
+          # A release created in the GitHub UI (which also pushes the tag) keeps its notes.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" pi/install.sh pi/agent/placard_agent.py --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md pi/install.sh pi/agent/placard_agent.py
+          fi
