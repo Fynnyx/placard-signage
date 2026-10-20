@@ -11,6 +11,7 @@
 #   --vpn tailscale|netbird --vpn-key KEY   join a VPN for remote SSH
 #   --ssh-key "ssh-ed25519 AAAA…"           allow this key for the user kiosk and turn off SSH passwords
 #   --no-reboot             do not reboot at the end of a first install
+#   --show-cursor           show the mouse cursor (it is hidden by default)
 #
 # Safe to run again: it updates the packages, the kiosk script and the agent, and keeps the pairing.
 set -euo pipefail
@@ -22,6 +23,7 @@ VPN=""
 VPN_KEY=""
 SSH_KEY=""
 REBOOT=1
+SHOW_CURSOR=0
 KIOSK_USER=kiosk
 CONF_DIR=/etc/placard
 AGENT_DIR=/opt/placard
@@ -39,7 +41,8 @@ while [ $# -gt 0 ]; do
     --vpn-key) VPN_KEY="${2:?}"; shift 2 ;;
     --ssh-key) SSH_KEY="${2:?}"; shift 2 ;;
     --no-reboot) REBOOT=0; shift ;;
-    -h|--help) sed -n '2,18p' "$0" 2>/dev/null || true; exit 0 ;;
+    --show-cursor) SHOW_CURSOR=1; shift ;;
+    -h|--help) sed -n '2,19p' "$0" 2>/dev/null || true; exit 0 ;;
     *) die "unknown option: $1" ;;
   esac
 done
@@ -101,6 +104,54 @@ mkdir -p "$KIOSK_HOME/.config/labwc"
 cat > "$KIOSK_HOME/.config/labwc/autostart" <<'EOF'
 /usr/local/bin/placard-kiosk >/tmp/placard-kiosk.log 2>&1 &
 EOF
+
+# ---------------------------------------------------------------- mouse cursor
+# Wayland has no "hide cursor" switch, so the kiosk session gets a cursor theme
+# whose cursors are a single transparent pixel. It covers labwc, the player and
+# pages inside iframes. --show-cursor switches back to the normal cursor.
+CURSOR_THEME=placard-hidden
+CURSOR_DIR="/usr/share/icons/$CURSOR_THEME/cursors"
+mkdir -p "$CURSOR_DIR"
+python3 - "$CURSOR_DIR/left_ptr" <<'EOF'
+import struct, sys
+# Xcursor file: header, one table-of-contents entry, one 1x1 image chunk (all little-endian uint32).
+IMAGE = 0xFFFD0002
+header = struct.pack("<4sIII", b"Xcur", 16, 0x10000, 1)
+toc = struct.pack("<III", IMAGE, 1, 28)
+chunk = struct.pack("<IIIIIIIIII", 36, IMAGE, 1, 1, 1, 1, 0, 0, 0, 0)  # 1x1, hotspot 0,0, transparent pixel
+open(sys.argv[1], "wb").write(header + toc + chunk)
+EOF
+for name in default arrow top_left_arrow pointer hand hand1 hand2 pointing_hand text xterm ibeam \
+  wait watch progress left_ptr_watch half-busy crosshair cross move fleur grab grabbing openhand closedhand \
+  not-allowed no-drop forbidden crossed_circle help question_arrow context-menu cell copy alias \
+  col-resize row-resize n-resize s-resize e-resize w-resize ne-resize nw-resize se-resize sw-resize \
+  ew-resize ns-resize nesw-resize nwse-resize all-scroll zoom-in zoom-out vertical-text \
+  sb_h_double_arrow sb_v_double_arrow top_side bottom_side left_side right_side \
+  top_left_corner top_right_corner bottom_left_corner bottom_right_corner; do
+  ln -sf left_ptr "$CURSOR_DIR/$name"
+done
+printf '[Icon Theme]\nName=%s\nComment=Invisible cursor for Placard Signage kiosks\n' "$CURSOR_THEME" \
+  > "/usr/share/icons/$CURSOR_THEME/index.theme"
+
+# labwc reads its environment from this file; keep lines the admin added (e.g. XKB_DEFAULT_LAYOUT=ch).
+LABWC_ENV="$KIOSK_HOME/.config/labwc/environment"
+touch "$LABWC_ENV"
+sed -i '/^XCURSOR_THEME=/d; /^XCURSOR_SIZE=/d' "$LABWC_ENV"
+mkdir -p "$KIOSK_HOME/.config/gtk-3.0"
+if [ "$SHOW_CURSOR" = 1 ]; then
+  rm -f "$KIOSK_HOME/.config/gtk-3.0/settings.ini"
+  if grep -qs "Inherits=$CURSOR_THEME" /usr/share/icons/default/index.theme; then
+    rm -f /usr/share/icons/default/index.theme
+  fi
+else
+  printf 'XCURSOR_THEME=%s\nXCURSOR_SIZE=24\n' "$CURSOR_THEME" >> "$LABWC_ENV"
+  # Chromium may take the theme from GTK settings or the system default theme instead.
+  printf '[Settings]\ngtk-cursor-theme-name=%s\n' "$CURSOR_THEME" > "$KIOSK_HOME/.config/gtk-3.0/settings.ini"
+  if [ ! -e /usr/share/icons/default/index.theme ] || grep -qs "Inherits=$CURSOR_THEME" /usr/share/icons/default/index.theme; then
+    mkdir -p /usr/share/icons/default
+    printf '[Icon Theme]\nInherits=%s\n' "$CURSOR_THEME" > /usr/share/icons/default/index.theme
+  fi
+fi
 chown -R "$KIOSK_USER:$KIOSK_USER" "$KIOSK_HOME/.bash_profile" "$KIOSK_HOME/.config"
 
 # ---------------------------------------------------------------- display settings

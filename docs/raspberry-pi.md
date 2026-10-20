@@ -29,6 +29,7 @@ curl -fsSL https://signage.example.org/install.sh | sudo bash -s -- \
 | `--vpn netbird --vpn-key KEY` | Joins your NetBird network |
 | `--server URL` | Uses another server than the one the script came from |
 | `--no-reboot` | Does not reboot at the end of the first install |
+| `--show-cursor` | Shows the mouse cursor (hidden by default) |
 
 The script is safe to run again: it updates packages, the kiosk script and the agent, and keeps the pairing.
 
@@ -40,6 +41,7 @@ The script is safe to run again: it updates packages, the kiosk script and the a
 - `/opt/placard/placard_agent.py` with `placard-agent.service` (systemd, runs as `kiosk`, restarts on failure).
 - `/etc/placard/config.toml` (server URL and device token, mode 600) and `/etc/placard/kiosk.env` (rotation).
 - `/etc/sudoers.d/placard`: the agent may run `systemctl reboot`, nothing else.
+- The mouse cursor is hidden: the kiosk session uses an invisible cursor theme (`/usr/share/icons/placard-hidden`), which also covers web pages in iframes. Run the script again with `--show-cursor` to get it back.
 - Screen blanking off, `hdmi_force_hotplug=1` in `config.txt` (the Pi outputs video even when the screen is switched off at boot).
 - `unattended-upgrades` for Debian and Raspberry Pi OS updates, which includes Chromium.
 
