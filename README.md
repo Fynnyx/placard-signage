@@ -22,9 +22,9 @@ You need a server with Docker and a domain name pointing to it.
 
 ```sh
 mkdir placard && cd placard
-curl -fsSLO https://raw.githubusercontent.com/OWNER/placard-signage/main/deploy/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OWNER/placard-signage/main/deploy/Caddyfile
-curl -fsSL https://raw.githubusercontent.com/OWNER/placard-signage/main/deploy/.env.example -o .env
+curl -fsSLO https://raw.githubusercontent.com/Fynnyx/placard-signage/main/deploy/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/Fynnyx/placard-signage/main/deploy/Caddyfile
+curl -fsSL https://raw.githubusercontent.com/Fynnyx/placard-signage/main/deploy/.env.example -o .env
 nano .env              # set DOMAIN and ACME_EMAIL
 docker compose up -d
 ```

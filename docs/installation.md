@@ -22,7 +22,7 @@ Run the container and proxy HTTPS to port 3000:
 docker run -d --name placard --restart unless-stopped \
   -e PUBLIC_URL=https://signage.example.org \
   -v placard-data:/data -p 127.0.0.1:3000:3000 \
-  ghcr.io/OWNER/placard-signage:1
+  ghcr.io/fynnyx/placard-signage:1
 ```
 
 - `PUBLIC_URL` must be the address browsers and screens use.

@@ -6,7 +6,7 @@
 # Then open https://$DOMAIN and create the first admin.
 services:
   placard:
-    image: ghcr.io/OWNER/placard-signage:1
+    image: ghcr.io/fynnyx/placard-signage:1
     restart: unless-stopped
     environment:
       PUBLIC_URL: https://${DOMAIN}
