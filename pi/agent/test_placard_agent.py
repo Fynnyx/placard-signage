@@ -167,5 +167,71 @@ class AgentTest(unittest.TestCase):
             self.assertEqual(reboot.call_count, 1)
 
 
+
+class TimezoneSyncTest(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.cfg_path = Path(self.dir.name) / "config.toml"
+        pa.save_config({"server_url": "https://s.example", "token": "tok"}, self.cfg_path)
+        self.agent = pa.Agent(self.cfg_path, FakeDevTools())
+        self.agent.http = mock.Mock()
+        self.ok = mock.Mock(returncode=0, stdout="", stderr="")
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def sudo_calls(self, run):
+        return [c for c in run.call_args_list if c.args[0][:2] == ["sudo", "-n"]]
+
+    def test_sets_a_different_zone_and_restarts_chromium(self):
+        with mock.patch.object(pa, "system_timezone", return_value="Etc/UTC"), \
+             mock.patch.object(pa, "run", return_value=self.ok) as run, \
+             mock.patch.object(pa, "kill_chromium") as kill:
+            self.agent.sync_timezone("Europe/Zurich")
+            self.assertEqual(self.sudo_calls(run)[0].args[0], ["sudo", "-n", "/usr/bin/timedatectl", "set-timezone", "Europe/Zurich"])
+            kill.assert_called_once()
+
+    def test_leaves_a_matching_zone_alone(self):
+        with mock.patch.object(pa, "system_timezone", return_value="Europe/Zurich"), \
+             mock.patch.object(pa, "run") as run, mock.patch.object(pa, "kill_chromium") as kill:
+            self.agent.sync_timezone("Europe/Zurich")
+            run.assert_not_called()
+            kill.assert_not_called()
+
+    def test_rejects_unknown_or_odd_names(self):
+        with mock.patch.object(pa, "system_timezone", return_value="Etc/UTC"), \
+             mock.patch.object(pa, "run") as run, mock.patch.object(self.agent, "report"):
+            self.agent.sync_timezone("Mars/Olympus_Mons")
+            self.agent.sync_timezone("Europe/Zurich; reboot")
+            self.agent.sync_timezone("../../etc/passwd")
+            run.assert_not_called()
+
+    def test_reports_a_missing_sudo_rule_once(self):
+        denied = mock.Mock(returncode=1, stdout="", stderr="sudo: a password is required")
+        with mock.patch.object(pa, "system_timezone", return_value="Etc/UTC"), \
+             mock.patch.object(pa, "run", return_value=denied) as run, \
+             mock.patch.object(pa, "kill_chromium") as kill, \
+             mock.patch.object(self.agent, "report") as report:
+            self.agent.sync_timezone("Europe/Zurich")
+            self.agent.sync_timezone("Europe/Zurich")
+            self.assertEqual(len(self.sudo_calls(run)), 1)
+            self.assertEqual(report.call_count, 1)
+            self.assertIn("install.sh", report.call_args.args[1])
+            kill.assert_not_called()
+
+    def test_can_be_turned_off(self):
+        self.agent.cfg["sync_timezone"] = False
+        with mock.patch.object(pa, "run") as run:
+            self.agent.sync_timezone("Europe/Zurich")
+            run.assert_not_called()
+
+    def test_heartbeat_passes_the_zone_on(self):
+        with mock.patch.object(pa, "displays", return_value=[]), \
+             mock.patch.object(self.agent, "sync_timezone") as sync:
+            self.agent.http.post.return_value = Response(200, {"commands": [], "timezone": "Europe/Zurich"})
+            self.agent.heartbeat()
+            sync.assert_called_once_with("Europe/Zurich")
+
+
 if __name__ == "__main__":
     unittest.main()

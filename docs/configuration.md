@@ -7,7 +7,7 @@ Everything is configured with environment variables. Only `PUBLIC_URL` is requir
 | `PUBLIC_URL` | – (required) | Base URL screens and browsers use, e.g. `https://signage.example.org` |
 | `DATA_DIR` | `/data` | SQLite database (`placard.db`), `media/`, `screenshots/` |
 | `PORT`, `HOST` | `3000`, `0.0.0.0` | Where the server listens |
-| `TZ` | `UTC` | Container time zone; also the initial schedule time zone (changeable in **Settings**) |
+| `TZ` | `UTC` | Container time zone; also the initial time zone in **Settings**, which the schedule uses and Raspberry Pi screens set their clock to |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | unset | Create the first admin on start instead of using the setup wizard. With OIDC as the only login, `ADMIN_EMAIL` alone makes that OIDC user the first admin |
 | `LOCAL_LOGIN` | `true` | Set to `false` to allow only OIDC login |
 | `OIDC_ISSUER` | unset | Issuer URL; enables OIDC login together with `OIDC_CLIENT_ID` |

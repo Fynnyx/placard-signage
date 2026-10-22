@@ -206,9 +206,9 @@ install -d -o "$KIOSK_USER" -g "$KIOSK_USER" -m 755 "$AGENT_DIR"
 install -o "$KIOSK_USER" -g "$KIOSK_USER" -m 755 "$TMP/placard_agent.py" "$AGENT_DIR/placard_agent.py"
 install -m 644 "$TMP/placard-agent.service" /etc/systemd/system/placard-agent.service
 
-# The agent may reboot the Pi, nothing else.
+# The agent may reboot the Pi and set its time zone (from the dashboard), nothing else.
 cat > "$TMP/sudoers" <<EOF
-$KIOSK_USER ALL=(root) NOPASSWD: /usr/bin/systemctl reboot
+$KIOSK_USER ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /usr/bin/timedatectl set-timezone *
 EOF
 visudo -cf "$TMP/sudoers" >/dev/null
 install -m 440 "$TMP/sudoers" /etc/sudoers.d/placard

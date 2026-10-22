@@ -34,7 +34,7 @@ from zoneinfo import ZoneInfo
 import requests
 import websocket
 
-AGENT_VERSION = "1.0.0"
+AGENT_VERSION = "1.1.0"
 
 CONFIG_PATH = Path(os.environ.get("PLACARD_CONFIG", "/etc/placard/config.toml"))
 RUN_DIR = Path(os.environ.get("PLACARD_RUN_DIR", "/run/placard"))
@@ -286,6 +286,24 @@ def kill_chromium() -> None:
     run(["pkill", "-9", "-f", "--", "--user-data-dir=/home/kiosk/.placard-profile"])
 
 
+TZ_NAME = re.compile(r"^[A-Za-z0-9_+\-]+(/[A-Za-z0-9_+\-]+)*$")
+
+
+def system_timezone() -> str | None:
+    """The Pi's time zone, e.g. "Europe/Zurich"."""
+    try:
+        r = run(["timedatectl", "show", "-p", "Timezone", "--value"])
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    try:
+        target = os.readlink("/etc/localtime")
+    except OSError:
+        return None
+    return target.split("zoneinfo/", 1)[1] if "zoneinfo/" in target else None
+
+
 def version_tuple(v: str) -> tuple[int, ...]:
     return tuple(int(x) for x in re.findall(r"\d+", v)[:4])
 
@@ -310,6 +328,7 @@ class Agent:
         self.nightly_reboot: str | None = None
         self.timezone = "UTC"
         self.rebooted_for: str | None = None
+        self.timezone_failed_for: str | None = None
 
     # ---- helpers
     @property
@@ -423,6 +442,8 @@ class Agent:
         self.heartbeat_interval = float(data.get("heartbeatInterval", 30))
         self.nightly_reboot = data.get("nightlyReboot")
         self.timezone = data.get("timezone") or "UTC"
+        if data.get("timezone"):
+            self.sync_timezone(data["timezone"])
         for cmd in data.get("commands", []):
             self.run_command(cmd)
         agent = data.get("agent")
@@ -486,6 +507,35 @@ class Agent:
             self.rebooted_for = key
             self.report("info", f"Nightly reboot at {self.nightly_reboot}")
             self.reboot("nightly")
+
+    def sync_timezone(self, tz: str) -> None:
+        """Sets the Pi's time zone to the dashboard's, so clocks on content pages are right.
+
+        Turn it off with `sync_timezone = false` in config.toml.
+        """
+        if self.cfg.get("sync_timezone", True) is False or tz == self.timezone_failed_for:
+            return
+        try:
+            if not TZ_NAME.match(tz):
+                raise ValueError("invalid name")
+            ZoneInfo(tz)
+        except Exception:
+            self.timezone_failed_for = tz
+            self.report("warn", f"Ignoring unknown time zone {tz!r} from the server")
+            return
+        current = system_timezone()
+        if current == tz:
+            return
+        r = run(["sudo", "-n", "/usr/bin/timedatectl", "set-timezone", tz], timeout=30)
+        if r.returncode != 0:
+            # Report once; older installs lack the sudo rule until install.sh runs again.
+            self.timezone_failed_for = tz
+            self.report("warn", f"Could not set the time zone to {tz} (run install.sh again to allow it): "
+                                f"{(r.stderr or r.stdout).strip()[:300]}")
+            return
+        # Chromium reads the time zone at start, so restart it; the kiosk loop brings it back.
+        self.report("info", f"Time zone changed from {current or 'unknown'} to {tz}; restarting Chromium")
+        kill_chromium()
 
     # ---- watchdog
     def check_chromium(self) -> None:

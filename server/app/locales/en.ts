@@ -229,6 +229,7 @@ export default {
   'settings.logo': 'Logo',
   'settings.playback': 'Playback',
   'settings.timezone': 'Time zone',
+  'settings.timezoneHint': 'Used for the schedule. Raspberry Pi screens also set their clock to it.',
   'settings.defaultPlaylist': 'Default playlist',
   'settings.none': 'None',
   'settings.apiTokens': 'API tokens',

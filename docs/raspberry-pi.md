@@ -40,7 +40,7 @@ The script is safe to run again: it updates packages, the kiosk script and the a
 - `/usr/local/bin/placard-kiosk` starts Chromium in kiosk mode in a loop, so a crash brings it back within seconds. DevTools listen on `127.0.0.1:9222` only.
 - `/opt/placard/placard_agent.py` with `placard-agent.service` (systemd, runs as `kiosk`, restarts on failure).
 - `/etc/placard/config.toml` (server URL and device token, mode 600) and `/etc/placard/kiosk.env` (rotation).
-- `/etc/sudoers.d/placard`: the agent may run `systemctl reboot`, nothing else.
+- `/etc/sudoers.d/placard`: the agent may run `systemctl reboot` and `timedatectl set-timezone`, nothing else.
 - The mouse cursor is hidden: the kiosk session uses an invisible cursor theme (`/usr/share/icons/placard-hidden`), which also covers web pages in iframes. Run the script again with `--show-cursor` to get it back.
 - Screen blanking off, `hdmi_force_hotplug=1` in `config.txt` (the Pi outputs video even when the screen is switched off at boot).
 - `unattended-upgrades` for Debian and Raspberry Pi OS updates, which includes Chromium.
@@ -54,7 +54,8 @@ The agent is a single Python file. It:
 3. runs **commands** from the heartbeat response: reload (DevTools `Page.reload`), reboot, display on/off (`wlr-randr`, plus HDMI-CEC standby/wake on TVs), screenshot (DevTools `Page.captureScreenshot`);
 4. restarts Chromium when DevTools do not answer for 60 s (**watchdog**);
 5. **updates itself** when the server has a newer version (checksum-verified);
-6. reboots nightly if a time is set for the screen in the dashboard.
+6. reboots nightly if a time is set for the screen in the dashboard;
+7. sets the Pi's **time zone** to the one in **Settings → Time zone**, so clocks on content pages are right. When it changes, Chromium restarts once. To manage the time zone on a Pi yourself, add `sync_timezone = false` to `/etc/placard/config.toml` and restart the agent.
 
 Useful commands on the Pi:
 
@@ -88,5 +89,6 @@ Install the new Pi as usual; it shows a code. Open the old screen in the dashboa
 | Black screen, no code | `journalctl -u placard-agent` – can the Pi reach the server? `curl https://signage.example.org/api/health` |
 | Screen shows "not paired" | The screen was deleted in the dashboard. Run the `--unpair` command above to get a new code |
 | A web page stays white | The page probably forbids framing. See [content.md](content.md#web-pages) |
+| Clock on the screen is wrong | Set **Settings → Time zone** in the dashboard. Screens installed before agent 1.1 need `install.sh` once more to be allowed to change it. If it is off by minutes, check time sync: `timedatectl show -p NTPSynchronized` |
 | Display on/off does nothing | Some monitors ignore DPMS; TVs need HDMI-CEC enabled in their settings ("Anynet+", "Bravia Sync", "SimpLink") |
 | Video does not play | Use H.264 MP4 or VP9 WebM; very high bitrates can overload a Pi 3 |

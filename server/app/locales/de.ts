@@ -229,6 +229,7 @@ export default {
   'settings.logo': 'Logo',
   'settings.playback': 'Wiedergabe',
   'settings.timezone': 'Zeitzone',
+  'settings.timezoneHint': 'Gilt für den Zeitplan. Raspberry-Pi-Bildschirme stellen auch ihre Uhr darauf ein.',
   'settings.defaultPlaylist': 'Standard-Playlist',
   'settings.none': 'Keine',
   'settings.apiTokens': 'API-Tokens',

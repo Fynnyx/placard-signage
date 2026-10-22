@@ -81,6 +81,7 @@ async function revoke(tk: any) {
               <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
             </select>
             <input v-else v-model="form.timezone">
+            <span class="small">{{ t('settings.timezoneHint') }}</span>
           </label>
         </template>
         <label>{{ t('settings.defaultPlaylist') }}
